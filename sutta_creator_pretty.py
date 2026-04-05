@@ -3,12 +3,13 @@
 Sutta Creator.
 
 Generate a new Buddhist-style sutta using the Groq API, print it beautifully
-in the terminal, and save it to a markdown file under suttas/beginner/.
+in the terminal, and save it to a markdown file under suttas/<difficulty>/.
 
 Example:
     python sutta_creator.py \
         --source "Speak kindly, act carefully, and let go of grasping." \
-        --output metta-sutta.md
+        --output metta-sutta.md \
+        --difficulty beginner
 
 Environment:
     GROQ_API_KEY must be available in the environment or in a .env file.
@@ -20,6 +21,7 @@ import argparse
 import os
 import sys
 from pathlib import Path
+from typing import Final
 
 from dotenv import load_dotenv
 from groq import Groq
@@ -27,8 +29,14 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
-DEFAULT_OUTPUT_DIR = Path("suttas") / "beginner"
+DEFAULT_MODEL: Final[str] = "llama-3.3-70b-versatile"
+BASE_OUTPUT_DIR: Final[Path] = Path("suttas")
+DIFFICULTY_LEVELS: Final[tuple[str, ...]] = (
+    "beginner",
+    "novice",
+    "advanced",
+    "master",
+)
 
 console = Console()
 
@@ -63,8 +71,15 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help=(
             "Output markdown filename. This will be created inside "
-            "suttas/beginner/. Example: my-sutta.md"
+            "suttas/<difficulty>/. Example: my-sutta.md"
         ),
+    )
+    parser.add_argument(
+        "--difficulty",
+        required=False,
+        default="beginner",
+        choices=DIFFICULTY_LEVELS,
+        help="Difficulty level for the sutta and output folder.",
     )
     parser.add_argument(
         "--model",
@@ -103,56 +118,124 @@ def get_groq_client() -> Groq:
     return Groq(api_key=api_key)
 
 
-def normalize_output_path(output_name: str) -> Path:
+def get_output_directory(difficulty: str) -> Path:
     """
-    Normalize the output filename so it is always written inside suttas/beginner/.
+    Return the output directory for a given difficulty level.
+
+    Args:
+        difficulty: Difficulty level.
+
+    Returns:
+        Output directory path.
+    """
+    return BASE_OUTPUT_DIR / difficulty
+
+
+def normalize_output_path(output_name: str, difficulty: str) -> Path:
+    """
+    Normalize the output filename so it is always written inside suttas/<difficulty>/.
 
     Args:
         output_name: User-provided output filename.
+        difficulty: Difficulty level.
 
     Returns:
-        Resolved output path inside suttas/beginner/.
+        Resolved output path inside suttas/<difficulty>/.
     """
     filename = Path(output_name).name
     if not filename.endswith(".md"):
         filename = f"{filename}.md"
-    return DEFAULT_OUTPUT_DIR / filename
+    return get_output_directory(difficulty) / filename
 
 
-def build_prompt(sutta_source: str) -> str:
+def get_difficulty_prompt_rules(difficulty: str) -> str:
+    """
+    Return prompt rules tailored to the requested difficulty.
+
+    Args:
+        difficulty: Difficulty level.
+
+    Returns:
+        Difficulty-specific prompt guidance.
+    """
+    rules = {
+        "beginner": """
+- Use very simple plain English.
+- Keep the teaching gentle, welcoming, and easy to understand.
+- Avoid heavy doctrinal vocabulary unless briefly explained.
+- Include practical examples from daily life.
+- Keep sections short and clear.
+""".strip(),
+        "novice": """
+- Use accessible English with a little more Buddhist vocabulary.
+- Explain key terms when used.
+- Include a balance of clarity, reflection, and light doctrine.
+- Encourage steady practice and moral discipline.
+- Keep the structure readable and moderately detailed.
+""".strip(),
+        "advanced": """
+- Use more depth in doctrine, contemplation, and philosophical framing.
+- You may include terms such as impermanence, non-self, dependent origination,
+  mindfulness, concentration, and liberation when relevant.
+- Assume the reader already has some familiarity with practice.
+- Include deeper reflections and more nuanced lessons.
+""".strip(),
+        "master": """
+- Write in a profound, subtle, contemplative, and spiritually refined manner.
+- Use deeper Dhamma framing, careful paradox, insight language, and advanced reflection.
+- Assume the reader is highly mature in practice and can handle dense contemplative material.
+- Emphasize insight, release, emptiness, non-clinging, wisdom, and liberation.
+- Keep the language beautiful and precise rather than merely complex.
+""".strip(),
+    }
+    return rules[difficulty]
+
+
+def build_prompt(sutta_source: str, difficulty: str) -> str:
     """
     Build the prompt sent to the Groq model.
 
     Args:
         sutta_source: Source line for the sutta.
+        difficulty: Difficulty level.
 
     Returns:
         Prompt text.
     """
+    difficulty_rules = get_difficulty_prompt_rules(difficulty)
+
     return f"""
 Create a new original Buddhist-inspired sutta based on the following source:
 
 {sutta_source}
 
+Difficulty level: {difficulty}
+
+Difficulty guidance:
+{difficulty_rules}
+
 Requirements:
 1. Return valid markdown only.
 2. Start with a clear title as a level-1 markdown heading.
-3. Use a calm, beginner-friendly tone.
-4. Include short sections such as:
+3. Include these sections:
    - Meaning
    - Reflection
    - Practice
-5. Make it poetic, clear, and readable.
-6. Do not mention that it was generated by AI.
+   - Lessons
+4. Make it poetic, clear, readable, and spiritually grounded.
+5. Do not mention that it was generated by AI.
+6. Include the source and the origin of the sutta in plain English.
+7. Align the tone, vocabulary, and conceptual depth with the requested difficulty level.
 """.strip()
 
 
-def generate_sutta(sutta_source: str, model: str) -> str:
+def generate_sutta(sutta_source: str, difficulty: str, model: str) -> str:
     """
     Generate a new sutta from the provided source using the Groq API.
 
     Args:
         sutta_source: Source line for the sutta.
+        difficulty: Difficulty level.
         model: Groq model name.
 
     Returns:
@@ -169,13 +252,14 @@ def generate_sutta(sutta_source: str, model: str) -> str:
             {
                 "role": "system",
                 "content": (
-                    "You are a wise Buddhist writing assistant. "
-                    "You write gentle, clear, original suttas in beautiful markdown."
+                    "You are a wise Buddhist monk who knows the Noble Way and the Dhamma deeply. "
+                    "You write gentle, clear, original suttas in beautiful markdown. "
+                    "You carefully adapt your style to the requested difficulty level."
                 ),
             },
             {
                 "role": "user",
-                "content": build_prompt(sutta_source),
+                "content": build_prompt(sutta_source, difficulty),
             },
         ],
     )
@@ -209,18 +293,20 @@ def write_markdown_file(output_path: Path, content: str) -> None:
     output_path.write_text(content, encoding="utf-8")
 
 
-def print_sutta_to_terminal(content: str, output_path: Path) -> None:
+def print_sutta_to_terminal(content: str, output_path: Path, difficulty: str) -> None:
     """
     Print the sutta to the terminal with aesthetic markdown rendering.
 
     Args:
         content: Markdown content to print.
         output_path: Output path where the file was saved.
+        difficulty: Difficulty level used.
     """
     console.print()
     console.print(
         Panel.fit(
             f"[bold green]Sutta generated successfully[/bold green]\n"
+            f"[cyan]Difficulty:[/cyan] {difficulty}\n"
             f"[cyan]Saved to:[/cyan] {output_path}",
             border_style="bright_blue",
             title="Sutta Creator",
@@ -242,14 +328,15 @@ def main() -> int:
         load_environment_variables()
         args = parse_args()
 
-        output_path = normalize_output_path(args.output)
+        output_path = normalize_output_path(args.output, args.difficulty)
         sutta_markdown = generate_sutta(
             sutta_source=args.source,
+            difficulty=args.difficulty,
             model=args.model,
         )
 
         write_markdown_file(output_path, sutta_markdown)
-        print_sutta_to_terminal(sutta_markdown, output_path)
+        print_sutta_to_terminal(sutta_markdown, output_path, args.difficulty)
 
         return 0
 
