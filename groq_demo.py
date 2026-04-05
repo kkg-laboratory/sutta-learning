@@ -14,16 +14,37 @@ load_dotenv(dotenv_path=".env")
 
 
 def load_environment_variables():
+    """
+    Loads the environment variables from the .env file.
+
+    Returns:
+        None.
+    """
     load_dotenv(dotenv_path=".env")
 
 
 def get_groq_client():
+    """
+    Gets the Groq client.
+
+    Returns:
+        The Groq client.
+    """
     return Groq(
         api_key=os.environ.get("GROQ_API_KEY"),
     )
 
 
 def generate_chat_completion(messages):
+    """
+    Generates a chat completion using the Groq API.
+
+    Args:
+        messages: The messages to generate a chat completion from.
+
+    Returns:
+        The chat completion from the Groq API.
+    """
     client = get_groq_client()
     chat_completion = client.chat.completions.create(
         messages=messages,
@@ -33,6 +54,9 @@ def generate_chat_completion(messages):
 
 
 def main():
+    """
+    Main function to run the Groq Demo.
+    """
     load_environment_variables()
     chat_completion = generate_chat_completion(
         messages=[
