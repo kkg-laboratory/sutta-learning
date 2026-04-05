@@ -9,6 +9,21 @@ This project aims at creating new Suttas and revising existing ones. In the Budd
 3. Install the requirements using pip package manager: `pip install -r requirements.txt`.
 4. Run the programs individually using the `python <file.py>` command.
 
+# Guidelines
+
+1. Always be respectful.
+2. Follow all rules of the group and team.
+3. Avoid abusive language on public forums and platforms.
+4. Use correct terms and standard language when communicating.
+5. Follow all India, USA, and EU data policies and guidelines.
+6. Follow all security guidelines and practises when working on these projects.
+7. Abide by discipline and Right Fold Path given by Buddha.
+8. Build with loving-friendliness, dedication, determination and confidence.
+9. Avoid sharing personal credentials with AI systems.
+10. Plaigairism is not allowed on this platform.
+11. Do not steal the code and reimplement it as your own without appropriate merits and credits.
+12. Stay within the boundaries of the team as decided in Team Meetings, Standup Meetings, Sprint retrospectives and Town Halls.
+
 # License
 
 This project is licensed under the AGPLv3 License for Open Source Software. Violating this license has severe consequences and makes you liable to a penalty of $850 Million Dollars under the IPC4410 "Criminal Investigation on Monetary Vehicles" act.
