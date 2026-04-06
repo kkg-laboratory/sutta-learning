@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sutta Learning — A documentary tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0b0e;
+      --panel: #12151c;
+      --panel-2: #1a1f2a;
+      --text: #f0f2f5;
+      --muted: #9aa3b2;
+      --accent: #c9a227;
+      --accent-soft: rgba(201, 162, 39, 0.14);
+      --border: #2a3140;
+      --success: #3dcc7a;
+      --error: #f07178;
+      --console-bg: #0d0f14;
+      --console-border: #1e2433;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    /* ---------- Landing (documentary) ---------- */
+    .landing {
+      position: relative;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .landing::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 162, 39, 0.12), transparent 55%),
+        radial-gradient(ellipse 80% 50% at 100% 50%, rgba(80, 100, 140, 0.08), transparent 45%),
+        linear-gradient(180deg, #07080c 0%, #0a0b0e 40%, #0c0e14 100%);
+      pointer-events: none;
+    }
+
+    .landing::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+
+    .landing-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    .film-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    .film-badge span {
+      display: inline-block;
+      width: 32px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+    }
+
+    .landing h1 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-weight: 600;
+      font-size: clamp(2.5rem, 6vw, 3.75rem);
+      line-height: 1.08;
+      margin: 0 0 20px;
+      letter-spacing: -0.02em;
+    }
+
+    .landing .lede {
+      font-size: 1.2rem;
+      line-height: 1.65;
+      color: var(--muted);
+      max-width: 38rem;
+      margin: 0 0 40px;
+    }
+
+    .landing-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 56px;
+    }
+
+    .btn-try {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 28px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: #141108;
+      background: linear-gradient(145deg, #e4c76a, var(--accent));
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 4px 24px rgba(201, 162, 39, 0.25);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn-try:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(201, 162, 39, 0.35);
+    }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      padding: 14px 22px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .btn-ghost:hover {
+      color: var(--text);
+      border-color: rgba(201, 162, 39, 0.4);
+    }
+
+    .know-how {
+      display: grid;
+      gap: 32px;
+    }
+
+    .know-how h2 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin: 0 0 8px;
+    }
+
+    .know-how > p.sub {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+      max-width: 42rem;
+    }
+
+    .steps {
+      display: grid;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      background: rgba(18, 21, 28, 0.6);
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 20px;
+      padding: 24px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .step:last-child {
+      border-bottom: none;
+    }
+
+    .step-num {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--accent);
+      line-height: 1;
+      min-width: 2rem;
+    }
+
+    .step h3 {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .step p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--muted);
+    }
+
+    .landing-footer {
+      margin-top: 48px;
+      padding-top: 28px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ---------- Studio ---------- */
+    .studio-wrap {
+      min-height: 100vh;
+      background: linear-gradient(180deg, #08090d 0%, #0f1117 100%);
+    }
+
+    .studio-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 20px 0;
+    }
+
+    .studio-brand {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .studio-brand strong {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.35rem;
+      font-weight: 600;
+    }
+
+    .studio-brand span {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .nav-home {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .nav-home:hover {
+      color: var(--accent);
+      border-bottom-color: rgba(201, 162, 39, 0.5);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 20px 48px;
+    }
+
+    .hero-studio {
+      margin-bottom: 20px;
+      padding: 22px 24px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--accent-soft), rgba(255, 255, 255, 0.02));
+      border: 1px solid var(--border);
+    }
+
+    .hero-studio h1 {
+      margin: 0 0 8px;
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.65rem;
+      font-weight: 600;
+    }
+
+    .hero-studio p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .studio-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 1100px) {
+      .studio-layout.with-console {
+        grid-template-columns: minmax(0, 1fr) 340px;
+        align-items: start;
+      }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+    }
+
+    .card {
+      background: rgba(18, 21, 28, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .card h2 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    label {
+      display: block;
+      margin: 14px 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    textarea,
+    select,
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 15px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    textarea {
+      min-height: 150px;
+      resize: vertical;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.12s ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(145deg, #e4c76a, var(--accent));
+      color: #141108;
+    }
+
+    .btn-secondary {
+      background: #252b38;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar select {
+      max-width: 220px;
+    }
+
+    .status {
+      margin-top: 12px;
+      min-height: 24px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .status.success {
+      color: var(--success);
+    }
+
+    .status.error {
+      color: var(--error);
+    }
+
+    .sutta-list {
+      display: grid;
+      gap: 16px;
+      max-height: min(70vh, 900px);
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .sutta-item {
+      border: 1px solid var(--border);
+      background: #0f1218;
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .sutta-item h3 {
+      margin: 0 0 8px;
+      font-size: 19px;
+      line-height: 1.25;
+      font-family: "Cormorant Garamond", Georgia, serif;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      background: var(--accent-soft);
+      color: #e8d49a;
+      border: 1px solid rgba(201, 162, 39, 0.28);
+      border-radius: 999px;
+      padding: 4px 10px;
+    }
+
+    .source-box {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #151a24;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .content {
+      white-space: pre-wrap;
+      line-height: 1.75;
+      color: #e8ecf2;
+      font-size: 15px;
+    }
+
+    .empty {
+      padding: 32px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+    }
+
+    /* ---------- Console ---------- */
+    .console-card {
+      position: sticky;
+      top: 16px;
+      background: var(--console-bg);
+      border: 1px solid var(--console-border);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: min(85vh, 900px);
+    }
+
+    .console-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      background: #11141c;
+      border-bottom: 1px solid var(--console-border);
+    }
+
+    .console-head h2 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .console-clear {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #1a2030;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .console-clear:hover:not(:disabled) {
+      color: var(--text);
+    }
+
+    .console-body {
+      flex: 1;
+      overflow: auto;
+      padding: 12px;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #b4bcc8;
+    }
+
+    .log-entry {
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #1a1f2a;
+    }
+
+    .log-entry:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .log-time {
+      color: #5c6575;
+      margin-bottom: 6px;
+    }
+
+    .log-method {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 10px;
+      margin-right: 6px;
+    }
+
+    .log-method.get {
+      background: rgba(61, 204, 122, 0.15);
+      color: var(--success);
+    }
+
+    .log-method.post {
+      background: rgba(201, 162, 39, 0.15);
+      color: var(--accent);
+    }
+
+    .log-url {
+      color: #8b95a8;
+      word-break: break-all;
+    }
+
+    .log-block {
+      margin-top: 8px;
+      padding: 10px;
+      border-radius: 8px;
+      background: #0a0c10;
+      border: 1px solid #1e2430;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 200px;
+      overflow: auto;
+      color: #9fb0c8;
+    }
+
+    .log-error .log-block {
+      border-color: rgba(240, 113, 120, 0.35);
+      color: #f5a8ad;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Landing: #/ -->
+  <div id="view-landing" class="landing">
+    <div class="landing-inner">
+      <div class="film-badge"><span></span> Documentary tool <span></span></div>
+      <h1>Turn a seed of teaching into a sutta you can revisit.</h1>
+      <p class="lede">
+        This site is a quiet workshop: you offer a reflection or idea, and the system composes a Buddhist-style discourse,
+        stores it, and lets you read it again like pages in a film—scene by scene, voice by voice.
+      </p>
+      <div class="landing-actions">
+        <a href="#/studio" class="btn-try">Try now</a>
+        <a href="#/studio" class="btn-ghost">Open studio</a>
+      </div>
+
+      <section class="know-how" aria-labelledby="know-how-heading">
+        <div>
+          <h2 id="know-how-heading">Know-how</h2>
+          <p class="sub">
+            Built for documentary-minded practice: clear inputs, inspectable outputs, and a running log so you see what happened between thought and text.
+          </p>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">I</div>
+            <div>
+              <h3>Offer a source</h3>
+              <p>
+                Write a short seed—an image, a question, a line from life. You choose difficulty so the voice matches beginner warmth or master stillness.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">II</div>
+            <div>
+              <h3>Generate &amp; store</h3>
+              <p>
+                The server asks the model for a title and a full discourse, then saves everything to the database so your suttas accumulate over time.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">III</div>
+            <div>
+              <h3>Browse &amp; verify</h3>
+              <p>
+                Filter by difficulty, read the text alongside the original source, and use the console to audit requests and responses—useful when you are editing or teaching.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="landing-footer">
+        This is a creative and educational tool, not canonical scripture. Use discernment; treat outputs as material for reflection, not authority.
+      </footer>
+    </div>
+  </div>
+
+  <!-- Studio: #/studio -->
+  <div id="view-studio" class="studio-wrap" hidden>
+    <header class="studio-header">
+      <div class="studio-brand">
+        <strong>Sutta studio</strong>
+        <span>Creation &amp; library</span>
+      </div>
+      <a href="#/" class="nav-home">← Back to film</a>
+    </header>
+
+    <div class="container">
+      <section class="hero-studio">
+        <h1>Create, store, and read</h1>
+        <p>
+          Compose a sutta from your source text, refresh the list, and watch the API console log each call—same page, hash routing only.
+        </p>
+      </section>
+
+      <div class="studio-layout with-console" id="studioLayout">
+        <div>
+          <div class="grid">
+            <section class="card">
+              <h2>Create a sutta</h2>
+
+              <label for="source">Sutta source</label>
+              <textarea id="source" placeholder="Enter a Buddhist-friendly reflection, idea, teaching, image, or comment..."></textarea>
+
+              <label for="difficulty">Difficulty</label>
+              <select id="difficulty">
+                <option value="beginner">beginner</option>
+                <option value="novice">novice</option>
+                <option value="advanced">advanced</option>
+                <option value="master">master</option>
+              </select>
+
+              <div class="button-row">
+                <button type="button" class="btn-primary" id="createBtn">Create sutta</button>
+                <button type="button" class="btn-secondary" id="showBtn">Show suttas</button>
+              </div>
+
+              <div id="status" class="status"></div>
+            </section>
+
+            <section class="card">
+              <div class="toolbar">
+                <h2 style="margin:0;">Stored suttas</h2>
+                <select id="filterDifficulty" aria-label="Filter by difficulty">
+                  <option value="">All difficulties</option>
+                  <option value="beginner">beginner</option>
+                  <option value="novice">novice</option>
+                  <option value="advanced">advanced</option>
+                  <option value="master">master</option>
+                </select>
+              </div>
+
+              <div id="suttaList" class="sutta-list">
+                <div class="empty">No suttas loaded yet. Click &quot;Show suttas&quot;.</div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <aside class="console-card" aria-label="API console">
+          <div class="console-head">
+            <h2>Console</h2>
+            <button type="button" class="console-clear" id="consoleClear">Clear</button>
+          </div>
+          <div class="console-body" id="consoleBody">
+            <div class="log-entry">
+              <div class="log-time">Ready. Actions will appear here.</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const ROUTES = { LANDING: "landing", STUDIO: "studio" };
+
+      function parseRoute() {
+        const raw = (location.hash || "#/").replace(/^#/, "") || "/";
+        const path = raw.split("?")[0].replace(/\/+$/, "") || "/";
+        if (path === "/studio") return ROUTES.STUDIO;
+        return ROUTES.LANDING;
+      }
+
+      function applyRoute() {
+        const route = parseRoute();
+        const landing = document.getElementById("view-landing");
+        const studio = document.getElementById("view-studio");
+        landing.hidden = route !== ROUTES.LANDING;
+        studio.hidden = route !== ROUTES.STUDIO;
+        document.title =
+          route === ROUTES.STUDIO
+            ? "Studio — Sutta Learning"
+            : "Sutta Learning — A documentary tool";
+        if (route === ROUTES.STUDIO) {
+          window.scrollTo(0, 0);
+        }
+      }
+
+      window.addEventListener("hashchange", applyRoute);
+      applyRoute();
+
+      /* Studio logic */
+      const sourceEl = document.getElementById("source");
+      const difficultyEl = document.getElementById("difficulty");
+      const filterDifficultyEl = document.getElementById("filterDifficulty");
+      const createBtn = document.getElementById("createBtn");
+      const showBtn = document.getElementById("showBtn");
+      const statusEl = document.getElementById("status");
+      const suttaListEl = document.getElementById("suttaList");
+      const consoleBody = document.getElementById("consoleBody");
+      const consoleClear = document.getElementById("consoleClear");
+
+      const MAX_LOG = 40;
+
+      function logConsole(method, url, bodyObj, responseSummary, ok, errorText) {
+        if (!consoleBody) return;
+        const time = new Date().toLocaleTimeString(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+        const wrap = document.createElement("div");
+        wrap.className = "log-entry" + (errorText ? " log-error" : "");
+        const methodClass = method.toLowerCase() === "post" ? "post" : "get";
+        let bodyStr = "";
+        if (bodyObj !== undefined && bodyObj !== null) {
+          try {
+            bodyStr = JSON.stringify(bodyObj, null, 2);
+          } catch {
+            bodyStr = String(bodyObj);
+          }
+        }
+        wrap.innerHTML =
+          `<div class="log-time">${escapeHtml(time)}</div>` +
+          `<div><span class="log-method ${methodClass}">${escapeHtml(method)}</span>` +
+          `<span class="log-url">${escapeHtml(url)}</span></div>` +
+          (bodyStr
+            ? `<div class="log-block">${escapeHtml(bodyStr)}</div>`
+            : "") +
+          `<div class="log-block">${escapeHtml(responseSummary)}` +
+          (errorText ? "\n\n" + errorText : "") +
+          `</div>`;
+        const placeholder = consoleBody.querySelector(".log-entry:first-child .log-time");
+        if (
+          placeholder &&
+          placeholder.textContent.includes("Ready.")
+        ) {
+          consoleBody.innerHTML = "";
+        }
+        consoleBody.appendChild(wrap);
+        while (consoleBody.children.length > MAX_LOG) {
+          consoleBody.removeChild(consoleBody.firstChild);
+        }
+        consoleBody.scrollTop = consoleBody.scrollHeight;
+      }
+
+      consoleClear?.addEventListener("click", function () {
+        if (!consoleBody) return;
+        consoleBody.innerHTML =
+          `<div class="log-entry"><div class="log-time">Cleared.</div></div>`;
+      });
+
+      function setStatus(message, type = "") {
+        statusEl.className = "status" + (type ? ` ${type}` : "");
+        statusEl.textContent = message;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function renderSuttas(suttas) {
+        if (!suttas || suttas.length === 0) {
+          suttaListEl.innerHTML = `<div class="empty">No suttas found in the database.</div>`;
+          return;
+        }
+
+        suttaListEl.innerHTML = suttas
+          .map((sutta) => {
+            const createdAt = new Date(sutta.created_at).toLocaleString();
+            return `
+          <article class="sutta-item">
+            <h3>${escapeHtml(sutta.title)}</h3>
+            <div class="meta">
+              <span class="pill">${escapeHtml(sutta.difficulty)}</span>
+              <span>ID: ${escapeHtml(String(sutta.id))}</span>
+              <span>${escapeHtml(createdAt)}</span>
+            </div>
+            <div class="content">${escapeHtml(sutta.content)}</div>
+            <div class="source-box">
+              <strong>Source:</strong><br />
+              ${escapeHtml(sutta.source)}
+            </div>
+          </article>
+        `;
+          })
+          .join("");
+      }
+
+      async function loadSuttas() {
+        const filter = filterDifficultyEl.value;
+        const url = filter
+          ? `/api/suttas?difficulty=${encodeURIComponent(filter)}`
+          : "/api/suttas";
+        try {
+          setStatus("Loading suttas...");
+          const response = await fetch(url);
+          const text = await response.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            data = text;
+          }
+
+          const summary =
+            response.ok && Array.isArray(data)
+              ? `HTTP ${response.status} — ${data.length} record(s)`
+              : `HTTP ${response.status} — ${typeof data === "string" ? data.slice(0, 500) : JSON.stringify(data).slice(0, 500)}`;
+
+          logConsole("GET", url, null, summary, response.ok, !response.ok ? String(data) : "");
+
+          if (!response.ok) {
+            const detail =
+              typeof data === "object" && data && data.detail
+                ? data.detail
+                : "Failed to load suttas";
+            throw new Error(detail);
+          }
+
+          renderSuttas(data);
+          setStatus(`Loaded ${data.length} sutta(s).`, "success");
+        } catch (error) {
+          setStatus(error.message || "Failed to load suttas", "error");
+          logConsole("GET", url, null, "Request failed", false, error.message || String(error));
+        }
+      }
+
+      async function createSutta() {
+        const source = sourceEl.value.trim();
+        const difficulty = difficultyEl.value;
+
+        if (!source) {
+          setStatus("Please enter a sutta source first.", "error");
+          return;
+        }
+
+        const payload = { source, difficulty };
+        try {
+          createBtn.disabled = true;
+          showBtn.disabled = true;
+          setStatus("Generating and storing your sutta...");
+
+          const response = await fetch("/api/suttas", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const text = await response.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            data = text;
+          }
+
+          const preview =
+            response.ok && data && data.sutta
+              ? `HTTP ${response.status}\n` + JSON.stringify(data, null, 2).slice(0, 4000)
+              : `HTTP ${response.status}\n` + (typeof data === "string" ? data : JSON.stringify(data, null, 2)).slice(0, 4000);
+
+          logConsole(
+            "POST",
+            "/api/suttas",
+            payload,
+            preview,
+            response.ok,
+            !response.ok
+              ? typeof data === "object" && data && data.detail
+                ? data.detail
+                : String(data)
+              : ""
+          );
+
+          if (!response.ok) {
+            throw new Error(
+              typeof data === "object" && data && data.detail
+                ? data.detail
+                : "Failed to create sutta"
+            );
+          }
+
+          setStatus(`Created "${data.sutta.title}" successfully.`, "success");
+          sourceEl.value = "";
+          await loadSuttas();
+        } catch (error) {
+          setStatus(error.message || "Failed to create sutta", "error");
+        } finally {
+          createBtn.disabled = false;
+          showBtn.disabled = false;
+        }
+      }
+
+      createBtn.addEventListener("click", createSutta);
+      showBtn.addEventListener("click", loadSuttas);
+      filterDifficultyEl.addEventListener("change", loadSuttas);
+    })();
+  </script>
+</body>
+</html>
