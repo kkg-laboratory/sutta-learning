@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 try:
     from groq import Groq
@@ -94,6 +94,34 @@ class SuttaRecord(BaseModel):
 class SuttaCreateResponse(BaseModel):
     success: bool
     sutta: SuttaRecord
+
+
+class SuttaBatchItemInput(BaseModel):
+    source: str = Field(..., min_length=3)
+    difficulty: DifficultyLevel
+
+    @field_validator("source")
+    @classmethod
+    def strip_source(cls, v: str) -> str:
+        return v.strip()
+
+
+class SuttaBatchCreateRequest(BaseModel):
+    suttas: List[SuttaBatchItemInput] = Field(..., min_length=1, max_length=40)
+
+
+class SuttaBatchItemResult(BaseModel):
+    source: str
+    difficulty: DifficultyLevel
+    success: bool
+    sutta: Optional[SuttaRecord] = None
+    error: Optional[str] = None
+
+
+class SuttaBatchCreateResponse(BaseModel):
+    succeeded: int
+    failed: int
+    results: List[SuttaBatchItemResult]
 
 
 # --------------------------------------------------
@@ -357,6 +385,44 @@ def create_sutta(req: SuttaCreateRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create sutta: {str(e)}")
+
+
+@app.post("/api/suttas/batch", response_model=SuttaBatchCreateResponse)
+def create_suttas_batch(req: SuttaBatchCreateRequest):
+    results: List[SuttaBatchItemResult] = []
+    succeeded = 0
+    failed = 0
+    for item in req.suttas:
+        try:
+            title, content = generate_sutta(item.source, item.difficulty)
+            sutta = insert_sutta(
+                title=title,
+                content=content,
+                source=item.source,
+                difficulty=item.difficulty,
+            )
+            results.append(
+                SuttaBatchItemResult(
+                    source=item.source,
+                    difficulty=item.difficulty,
+                    success=True,
+                    sutta=sutta,
+                )
+            )
+            succeeded += 1
+        except Exception as e:
+            results.append(
+                SuttaBatchItemResult(
+                    source=item.source,
+                    difficulty=item.difficulty,
+                    success=False,
+                    error=str(e),
+                )
+            )
+            failed += 1
+    return SuttaBatchCreateResponse(
+        succeeded=succeeded, failed=failed, results=results
+    )
 
 
 @app.get("/api/suttas", response_model=List[SuttaRecord])
