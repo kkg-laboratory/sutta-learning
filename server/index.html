@@ -501,6 +501,33 @@
       border-radius: 16px;
     }
 
+    .batch-section {
+      margin-top: 22px;
+      padding-top: 22px;
+      border-top: 1px solid var(--border);
+    }
+
+    .batch-section h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .field-hint {
+      margin: 0 0 10px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    #batchJson {
+      min-height: 220px;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
     /* ---------- Console ---------- */
     .console-card {
       position: sticky;
@@ -725,6 +752,25 @@
               </div>
 
               <div id="status" class="status"></div>
+
+              <div class="batch-section">
+                <h3>Batch generation</h3>
+                <p class="field-hint">
+                  POST body shape: an object with a <code>suttas</code> array; each item has <code>source</code> (string, 3+ characters) and <code>difficulty</code> (beginner, novice, advanced, or master). Up to 40 items.
+                </p>
+                <label for="batchJson">Request JSON</label>
+                <textarea id="batchJson">{
+  "suttas": [
+    { "source": "Mindfulness Of Time", "difficulty": "novice" },
+    { "source": "Mindfulness of Data", "difficulty": "master" },
+    { "source": "Yoga and Sati", "difficulty": "beginner" },
+    { "source": "Being mindful when handling funds for Sangha.", "difficulty": "novice" }
+  ]
+}</textarea>
+                <div class="button-row">
+                  <button type="button" class="btn-primary" id="batchBtn">Generate batch</button>
+                </div>
+              </div>
             </section>
 
             <section class="card">
@@ -796,12 +842,20 @@
       const filterDifficultyEl = document.getElementById("filterDifficulty");
       const createBtn = document.getElementById("createBtn");
       const showBtn = document.getElementById("showBtn");
+      const batchBtn = document.getElementById("batchBtn");
+      const batchJsonEl = document.getElementById("batchJson");
       const statusEl = document.getElementById("status");
       const suttaListEl = document.getElementById("suttaList");
       const consoleBody = document.getElementById("consoleBody");
       const consoleClear = document.getElementById("consoleClear");
 
       const MAX_LOG = 40;
+
+      function setStudioBusy(busy) {
+        createBtn.disabled = busy;
+        showBtn.disabled = busy;
+        if (batchBtn) batchBtn.disabled = busy;
+      }
 
       function logConsole(method, url, bodyObj, responseSummary, ok, errorText) {
         if (!consoleBody) return;
@@ -893,13 +947,14 @@
           .join("");
       }
 
-      async function loadSuttas() {
+      async function loadSuttas(options) {
+        const quiet = options && options.quiet;
         const filter = filterDifficultyEl.value;
         const url = filter
           ? `/api/suttas?difficulty=${encodeURIComponent(filter)}`
           : "/api/suttas";
         try {
-          setStatus("Loading suttas...");
+          if (!quiet) setStatus("Loading suttas...");
           const response = await fetch(url);
           const text = await response.text();
           let data;
@@ -925,7 +980,7 @@
           }
 
           renderSuttas(data);
-          setStatus(`Loaded ${data.length} sutta(s).`, "success");
+          if (!quiet) setStatus(`Loaded ${data.length} sutta(s).`, "success");
         } catch (error) {
           setStatus(error.message || "Failed to load suttas", "error");
           logConsole("GET", url, null, "Request failed", false, error.message || String(error));
@@ -943,8 +998,7 @@
 
         const payload = { source, difficulty };
         try {
-          createBtn.disabled = true;
-          showBtn.disabled = true;
+          setStudioBusy(true);
           setStatus("Generating and storing your sutta...");
 
           const response = await fetch("/api/suttas", {
@@ -993,13 +1047,102 @@
         } catch (error) {
           setStatus(error.message || "Failed to create sutta", "error");
         } finally {
-          createBtn.disabled = false;
-          showBtn.disabled = false;
+          setStudioBusy(false);
+        }
+      }
+
+      async function createBatch() {
+        if (!batchJsonEl || !batchBtn) return;
+        const raw = batchJsonEl.value.trim();
+        if (!raw) {
+          setStatus("Paste JSON with a \"suttas\" array.", "error");
+          return;
+        }
+        let payload;
+        try {
+          payload = JSON.parse(raw);
+        } catch (e) {
+          setStatus("Invalid JSON: " + (e && e.message ? e.message : String(e)), "error");
+          return;
+        }
+        if (
+          !payload ||
+          typeof payload !== "object" ||
+          !Array.isArray(payload.suttas)
+        ) {
+          setStatus('JSON must look like { "suttas": [ { "source": "…", "difficulty": "…" }, … ] }.', "error");
+          return;
+        }
+        const n = payload.suttas.length;
+        if (n === 0 || n > 40) {
+          setStatus("suttas must contain between 1 and 40 items.", "error");
+          return;
+        }
+        try {
+          setStudioBusy(true);
+          setStatus(`Batch: generating ${n} sutta(s)...`);
+
+          const response = await fetch("/api/suttas/batch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const text = await response.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            data = text;
+          }
+
+          const preview =
+            response.ok && data && typeof data === "object"
+              ? `HTTP ${response.status}\n` + JSON.stringify(data, null, 2).slice(0, 12000)
+              : `HTTP ${response.status}\n` + (typeof data === "string" ? data : JSON.stringify(data, null, 2)).slice(0, 4000);
+
+          logConsole(
+            "POST",
+            "/api/suttas/batch",
+            { suttas: `[${n} items]` },
+            preview,
+            response.ok,
+            !response.ok
+              ? typeof data === "object" && data && data.detail
+                ? data.detail
+                : String(data)
+              : ""
+          );
+
+          if (!response.ok) {
+            throw new Error(
+              typeof data === "object" && data && data.detail
+                ? data.detail
+                : "Batch request failed"
+            );
+          }
+
+          const ok = data.succeeded ?? 0;
+          const bad = data.failed ?? 0;
+          const tone = bad > 0 ? "" : "success";
+          if (bad === 0) {
+            batchJsonEl.value = "";
+          }
+          await loadSuttas({ quiet: true });
+          setStatus(
+            `Batch finished: ${ok} created${bad ? `, ${bad} failed` : ""}.`,
+            tone
+          );
+        } catch (error) {
+          setStatus(error.message || "Batch generation failed", "error");
+        } finally {
+          setStudioBusy(false);
         }
       }
 
       createBtn.addEventListener("click", createSutta);
       showBtn.addEventListener("click", loadSuttas);
+      batchBtn?.addEventListener("click", createBatch);
       filterDifficultyEl.addEventListener("change", loadSuttas);
     })();
   </script>
