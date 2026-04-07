@@ -451,6 +451,12 @@
       background: #0f1218;
       border-radius: 16px;
       padding: 18px;
+      transition: border-color 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    .sutta-item.sutta-item-new {
+      border-color: rgba(201, 162, 39, 0.55);
+      box-shadow: 0 0 0 1px rgba(201, 162, 39, 0.2);
     }
 
     .sutta-item h3 {
@@ -645,6 +651,40 @@
       color: #f5a8ad;
     }
 
+    .log-entry.log-new-sutta {
+      border-bottom: 1px solid rgba(201, 162, 39, 0.25);
+      padding-bottom: 16px;
+    }
+
+    .log-new-sutta .log-sutta-head {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .log-new-sutta .log-sutta-title {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+      line-height: 1.25;
+    }
+
+    .log-new-sutta .log-sutta-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .log-new-sutta .log-sutta-body {
+      max-height: 240px;
+      overflow: auto;
+    }
+
     @media (max-width: 900px) {
       .grid {
         grid-template-columns: 1fr;
@@ -792,7 +832,7 @@
           </div>
         </div>
 
-        <aside class="console-card" aria-label="API console">
+        <aside class="console-card" id="studioConsolePanel" aria-label="API console">
           <div class="console-head">
             <h2>Console</h2>
             <button type="button" class="console-clear" id="consoleClear">Clear</button>
@@ -848,6 +888,7 @@
       const suttaListEl = document.getElementById("suttaList");
       const consoleBody = document.getElementById("consoleBody");
       const consoleClear = document.getElementById("consoleClear");
+      const studioConsolePanel = document.getElementById("studioConsolePanel");
 
       const MAX_LOG = 40;
 
@@ -855,6 +896,22 @@
         createBtn.disabled = busy;
         showBtn.disabled = busy;
         if (batchBtn) batchBtn.disabled = busy;
+      }
+
+      function clearConsolePlaceholder() {
+        if (!consoleBody) return;
+        const placeholder = consoleBody.querySelector(".log-entry:first-child .log-time");
+        if (placeholder && placeholder.textContent.includes("Ready.")) {
+          consoleBody.innerHTML = "";
+        }
+      }
+
+      function scrollConsoleIntoView() {
+        if (!consoleBody) return;
+        requestAnimationFrame(function () {
+          consoleBody.scrollTop = consoleBody.scrollHeight;
+          studioConsolePanel?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
       }
 
       function logConsole(method, url, bodyObj, responseSummary, ok, errorText) {
@@ -885,18 +942,84 @@
           `<div class="log-block">${escapeHtml(responseSummary)}` +
           (errorText ? "\n\n" + errorText : "") +
           `</div>`;
-        const placeholder = consoleBody.querySelector(".log-entry:first-child .log-time");
-        if (
-          placeholder &&
-          placeholder.textContent.includes("Ready.")
-        ) {
-          consoleBody.innerHTML = "";
-        }
+        clearConsolePlaceholder();
         consoleBody.appendChild(wrap);
         while (consoleBody.children.length > MAX_LOG) {
           consoleBody.removeChild(consoleBody.firstChild);
         }
-        consoleBody.scrollTop = consoleBody.scrollHeight;
+        scrollConsoleIntoView();
+      }
+
+      function logNewSuttaSnapshot(sutta, label) {
+        if (!consoleBody || !sutta) return;
+        const time = new Date().toLocaleTimeString(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+        const head = label || "New sutta on screen";
+        const wrap = document.createElement("div");
+        wrap.className = "log-entry log-new-sutta";
+        wrap.innerHTML =
+          `<div class="log-time">${escapeHtml(time)}</div>` +
+          `<div class="log-sutta-head">${escapeHtml(head)}</div>` +
+          `<div class="log-sutta-title">${escapeHtml(sutta.title)}</div>` +
+          `<div class="log-sutta-meta">ID ${escapeHtml(String(sutta.id))} · ${escapeHtml(sutta.difficulty)} · ${escapeHtml(new Date(sutta.created_at).toLocaleString())}</div>` +
+          `<div class="log-block log-sutta-body">${escapeHtml(sutta.content)}</div>` +
+          `<div class="log-block" style="margin-top:8px;font-size:10px;color:#7d8696;">Source</div>` +
+          `<div class="log-block">${escapeHtml(sutta.source)}</div>`;
+        clearConsolePlaceholder();
+        consoleBody.appendChild(wrap);
+        while (consoleBody.children.length > MAX_LOG) {
+          consoleBody.removeChild(consoleBody.firstChild);
+        }
+        scrollConsoleIntoView();
+      }
+
+      function logBatchSuttaSnapshots(results) {
+        if (!consoleBody || !results || !results.length) return;
+        const okRows = results.filter(function (r) {
+          return r.success && r.sutta;
+        });
+        if (!okRows.length) return;
+        const time = new Date().toLocaleTimeString(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+        const wrap = document.createElement("div");
+        wrap.className = "log-entry log-new-sutta";
+        let inner =
+          `<div class="log-time">${escapeHtml(time)}</div>` +
+          `<div class="log-sutta-head">New suttas on screen (${okRows.length})</div>`;
+        okRows.forEach(function (row, i) {
+          const s = row.sutta;
+          inner +=
+            (i > 0 ? `<div style="height:12px"></div>` : "") +
+            `<div class="log-sutta-title">${escapeHtml(s.title)}</div>` +
+            `<div class="log-sutta-meta">ID ${escapeHtml(String(s.id))} · ${escapeHtml(s.difficulty)}</div>` +
+            `<div class="log-block log-sutta-body">${escapeHtml(s.content)}</div>`;
+        });
+        wrap.innerHTML = inner;
+        clearConsolePlaceholder();
+        consoleBody.appendChild(wrap);
+        while (consoleBody.children.length > MAX_LOG) {
+          consoleBody.removeChild(consoleBody.firstChild);
+        }
+        scrollConsoleIntoView();
+      }
+
+      function focusSuttaInList(suttaId) {
+        if (!suttaListEl || suttaId == null) return;
+        const card = suttaListEl.querySelector(
+          '[data-sutta-id="' + String(suttaId) + '"]'
+        );
+        if (!card) return;
+        card.classList.add("sutta-item-new");
+        window.setTimeout(function () {
+          card.classList.remove("sutta-item-new");
+        }, 2600);
+        card.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
 
       consoleClear?.addEventListener("click", function () {
@@ -929,7 +1052,7 @@
           .map((sutta) => {
             const createdAt = new Date(sutta.created_at).toLocaleString();
             return `
-          <article class="sutta-item">
+          <article class="sutta-item" data-sutta-id="${escapeHtml(String(sutta.id))}">
             <h3>${escapeHtml(sutta.title)}</h3>
             <div class="meta">
               <span class="pill">${escapeHtml(sutta.difficulty)}</span>
@@ -1043,7 +1166,9 @@
 
           setStatus(`Created "${data.sutta.title}" successfully.`, "success");
           sourceEl.value = "";
-          await loadSuttas();
+          await loadSuttas({ quiet: true });
+          logNewSuttaSnapshot(data.sutta);
+          focusSuttaInList(data.sutta.id);
         } catch (error) {
           setStatus(error.message || "Failed to create sutta", "error");
         } finally {
@@ -1129,6 +1254,17 @@
             batchJsonEl.value = "";
           }
           await loadSuttas({ quiet: true });
+          logBatchSuttaSnapshots(data.results || []);
+          const okIds = (data.results || [])
+            .filter(function (r) {
+              return r.success && r.sutta;
+            })
+            .map(function (r) {
+              return r.sutta.id;
+            });
+          if (okIds.length) {
+            focusSuttaInList(Math.max.apply(null, okIds));
+          }
           setStatus(
             `Batch finished: ${ok} created${bad ? `, ${bad} failed` : ""}.`,
             tone
